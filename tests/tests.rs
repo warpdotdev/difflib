@@ -5,7 +5,7 @@ use difflib::sequencematcher::{Match, Opcode, SequenceMatcher};
 
 #[test]
 fn test_longest_match() {
-    let matcher = SequenceMatcher::new(" abcd", "abcd abcd");
+    let mut matcher = SequenceMatcher::new(" abcd", "abcd abcd");
     let m = matcher.find_longest_match(0, 5, 0, 9);
     assert_eq!(m.first_start, 0);
     assert_eq!(m.second_start, 4);
