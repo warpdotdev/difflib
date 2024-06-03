@@ -12,8 +12,12 @@ include = [
     "**/*.rs",
     "Cargo.toml",
 ]
+edition = "2021"
 
 
 [[test]]
 name = "tests"
+
+[dependencies]
+rustc-hash = "1.1.0"
 

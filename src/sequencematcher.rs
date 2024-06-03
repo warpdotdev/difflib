@@ -1,7 +1,10 @@
 use std::cmp::{max, min};
 use std::collections::HashMap;
 use std::hash::Hash;
-use utils::calculate_ratio;
+
+use rustc_hash::FxHashMap;
+
+use crate::utils::calculate_ratio;
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
 pub struct Match {
@@ -57,6 +60,12 @@ pub struct SequenceMatcher<'a, T: 'a + Sequence> {
     opcodes: Option<Vec<Opcode>>,
     is_junk: Option<fn(&T) -> bool>,
     second_sequence_elements: HashMap<&'a T, Vec<usize>>,
+
+    // These hash maps are used by `find_longest_match`; we store them here
+    // to avoid making many unnecessary heap allocations; that function
+    // gets called many times as part of `get_close_matches`.
+    longest_match_j2len: FxHashMap<usize, usize>,
+    longest_match_new_j2len: FxHashMap<usize, usize>,
 }
 
 impl<'a, T: Sequence> SequenceMatcher<'a, T> {
@@ -71,6 +80,8 @@ impl<'a, T: Sequence> SequenceMatcher<'a, T> {
             opcodes: None,
             is_junk: None,
             second_sequence_elements: HashMap::new(),
+            longest_match_j2len: FxHashMap::default(),
+            longest_match_new_j2len: FxHashMap::default(),
         };
         matcher.set_seqs(first_sequence, second_sequence);
         matcher
@@ -138,7 +149,7 @@ impl<'a, T: Sequence> SequenceMatcher<'a, T> {
     }
 
     pub fn find_longest_match(
-        &self,
+        &mut self,
         first_start: usize,
         first_end: usize,
         second_start: usize,
@@ -148,14 +159,19 @@ impl<'a, T: Sequence> SequenceMatcher<'a, T> {
         let second_sequence = &self.second_sequence;
         let second_sequence_elements = &self.second_sequence_elements;
         let (mut best_i, mut best_j, mut best_size) = (first_start, second_start, 0);
-        let mut j2len: HashMap<usize, usize> = HashMap::new();
+        let mut j2len = &mut self.longest_match_j2len;
+        let mut new_j2len = &mut self.longest_match_new_j2len;
+
+        // Clear out any old data in our reusable hash map allocations.
+        j2len.clear();
+        new_j2len.clear();
+
         for (i, item) in first_sequence
             .iter()
             .enumerate()
             .take(first_end)
             .skip(first_start)
         {
-            let mut new_j2len: HashMap<usize, usize> = HashMap::new();
             if let Some(indexes) = second_sequence_elements.get(item) {
                 for j in indexes {
                     let j = *j;
@@ -180,7 +196,8 @@ impl<'a, T: Sequence> SequenceMatcher<'a, T> {
                     }
                 }
             }
-            j2len = new_j2len;
+            std::mem::swap(&mut j2len, &mut new_j2len);
+            new_j2len.clear();
         }
         for _ in 0..2 {
             while best_i > first_start
@@ -342,5 +359,15 @@ impl<'a, T: Sequence> SequenceMatcher<'a, T> {
             matches,
             self.first_sequence.len() + self.second_sequence.len(),
         )
+    }
+
+    /// Return an upper bound on ratio() very quickly.
+    ///
+    /// This isn't defined beyond that it is an upper bound on .ratio(), and
+    /// is faster to compute than either .ratio() or .quick_ratio().
+    pub fn real_quick_ratio(&self) -> f32 {
+        let la = self.first_sequence.len();
+        let lb = self.second_sequence.len();
+        calculate_ratio(min(la, lb), la + lb)
     }
 }

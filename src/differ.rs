@@ -1,6 +1,7 @@
-use sequencematcher::SequenceMatcher;
 use std::cmp;
-use utils::{count_leading, str_with_similar_chars};
+
+use crate::sequencematcher::SequenceMatcher;
+use crate::utils::{count_leading, str_with_similar_chars};
 
 #[derive(Default)]
 pub struct Differ {
