@@ -361,6 +361,10 @@ impl<'a, T: Sequence> SequenceMatcher<'a, T> {
         )
     }
 
+    /// Return an upper bound on ratio() very quickly.
+    ///
+    /// This isn't defined beyond that it is an upper bound on .ratio(), and
+    /// is faster to compute than either .ratio() or .quick_ratio().
     pub fn real_quick_ratio(&self) -> f32 {
         let la = self.first_sequence.len();
         let lb = self.second_sequence.len();
