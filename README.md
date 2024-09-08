@@ -1,4 +1,4 @@
-# Difflib [![Build Status](https://travis-ci.org/DimaKudosh/difflib.svg?branch=master)](https://travis-ci.org/DimaKudosh/difflib)
+# Difflib
 
 Port of Python's difflib library to Rust.
 It's provide all necessary tools for comparing word sequences.
